@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Трекер привычек</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="container">
+    <h1>Трекер привычек</h1>
+
+    <div class="input-section">
+        <input type="text" id="habit-input" placeholder="Новая привычка" />
+        <button id="add-btn">Добавить</button>
+    </div>
+
+    <div class="filter-buttons">
+        <button id="filter-all" class="filter active-filter">Все</button>
+        <button id="filter-active" class="filter">Активные</button>
+        <button id="filter-completed" class="filter">Выполненные</button>
+    </div>
+
+    <ul id="habit-list"></ul>
+
+    <div class="counter-section">
+        <span id="completed-count">Выполнено: 0</span>
+    </div>
+</div>
+
+<script src="scripts/app.js"></script>
+</body>
+</html>
