@@ -1,128 +1,128 @@
+const state_ui = {
+    habitInput: document.getElementById('habit-input'),
+    addBtn: document.getElementById('add-btn'),
+    habitList: document.getElementById('habit-list'),
+    filterAllBtn: document.getElementById('filter-all'),
+    filterActiveBtn: document.getElementById('filter-active'),
+    filterCompletedBtn: document.getElementById('filter-completed'),
+    completedCountEl: document.getElementById('completed-count')
+};
+
+const state_data = {
+    habits: [],
+    currentFilter: 'all'
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-    const habitInput = document.getElementById('habit-input');
-    const addBtn = document.getElementById('add-btn');
-    const habitList = document.getElementById('habit-list');
-    const filterAllBtn = document.getElementById('filter-all');
-    const filterActiveBtn = document.getElementById('filter-active');
-    const filterCompletedBtn = document.getElementById('filter-completed');
-    const completedCountEl = document.getElementById('completed-count');
 
-    let habits = [];
-    let currentFilter = 'all';
-
-    loadHabits();
-    renderHabits();
-
-    addBtn.addEventListener('click', () => {
-        const text = habitInput.value.trim();
+    state_ui.addBtn.addEventListener('click', async () => {
+        const text = state_ui.habitInput.value.trim();
         if (text !== '') {
-            addHabit(text);
-            habitInput.value = '';
+            await addHabit(text);
+            state_ui.habitInput.value = '';
+            await loadHabits();
             renderHabits();
         }
     });
 
-    habitInput.addEventListener('keypress', (e) => {
+    state_ui.habitInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            addBtn.click();
+            state_ui.addBtn.click();
         }
     });
 
-    filterAllBtn.addEventListener('click', () => {
-        currentFilter = 'all';
-        setActiveFilterButton(filterAllBtn);
+    state_ui.filterAllBtn.addEventListener('click', () => {
+        state_data.currentFilter = 'all';
+        setActiveFilterButton(state_ui.filterAllBtn);
         renderHabits();
     });
 
-    filterActiveBtn.addEventListener('click', () => {
-        currentFilter = 'active';
-        setActiveFilterButton(filterActiveBtn);
+    state_ui.filterActiveBtn.addEventListener('click', () => {
+        state_data.currentFilter = 'active';
+        setActiveFilterButton(state_ui.filterActiveBtn);
         renderHabits();
     });
 
-    filterCompletedBtn.addEventListener('click', () => {
-        currentFilter = 'completed';
-        setActiveFilterButton(filterCompletedBtn);
+    state_ui.filterCompletedBtn.addEventListener('click', () => {
+        state_data.currentFilter = 'completed';
+        setActiveFilterButton(state_ui.filterCompletedBtn);
         renderHabits();
     });
 
-    function addHabit(text) {
-        const newHabit = {
-            id: Date.now(),
-            text,
-            completed: false,
-        };
-        habits.push(newHabit);
-        saveHabits();
-    }
-
-    function toggleHabitCompletion(habitId) {
-        habits = habits.map((habit) => {
-            if (habit.id === habitId) {
-                return {
-                    ...habit,
-                    completed: !habit.completed
-                };
-            }
-            return habit;
-        });
-        saveHabits();
-        renderHabits();
-    }
-
-    function saveHabits() {
-        localStorage.setItem('habits', JSON.stringify(habits));
-    }
-
-    function loadHabits() {
-        const stored = localStorage.getItem('habits');
-        if (stored) {
-            habits = JSON.parse(stored);
-        }
-    }
-
-    function renderHabits() {
-        habitList.innerHTML = '';
-
-        let filteredHabits = [];
-        if (currentFilter === 'all') {
-            filteredHabits = habits;
-        } else if (currentFilter === 'active') {
-            filteredHabits = habits.filter(habit => !habit.completed);
-        } else if (currentFilter === 'completed') {
-            filteredHabits = habits.filter(habit => habit.completed);
-        }
-
-        filteredHabits.forEach((habit) => {
-            const li = document.createElement('li');
-            li.classList.add('habit-item');
-            if (habit.completed) {
-                li.classList.add('completed');
-            }
-
-            const spanText = document.createElement('span');
-            spanText.textContent = habit.text;
-
-            spanText.addEventListener('click', () => {
-                toggleHabitCompletion(habit.id);
-            });
-
-            li.appendChild(spanText);
-            habitList.appendChild(li);
-        });
-
-        updateCompletedCount();
-    }
-
-    function updateCompletedCount() {
-        const completedCount = habits.filter(habit => habit.completed).length;
-        completedCountEl.textContent = `Выполнено: ${completedCount}`;
-    }
-
-    function setActiveFilterButton(activeButton) {
-        [filterAllBtn, filterActiveBtn, filterCompletedBtn].forEach(btn => {
-            btn.classList.remove('active-filter');
-        });
-        activeButton.classList.add('active-filter');
-    }
+    loadHabits().then(renderHabits);
 });
+
+async function loadHabits() {
+    try {
+        const response = await fetch('/habits');
+        if (!response.ok) throw new Error('Network error');
+        state_data.habits = await response.json();
+    } catch (err) {
+        console.error('Error loading habits:', err);
+    }
+}
+
+async function addHabit(text) {
+    try {
+        const response = await fetch('/habits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+        if (!response.ok) throw new Error('Failed to add habit');
+        return await response.json();
+    } catch (err) {
+        console.error('Error adding habit:', err);
+    }
+}
+
+async function toggleHabitCompletion(habitId) {
+    try {
+        const response = await fetch(`/habits/${habitId}`, { method: 'PUT' });
+        if (!response.ok) throw new Error('Failed to toggle habit');
+        await loadHabits();
+        renderHabits();
+    } catch (err) {
+        console.error('Error toggling habit:', err);
+    }
+}
+
+function renderHabits() {
+    state_ui.habitList.innerHTML = '';
+
+    let filteredHabits = [];
+    if (state_data.currentFilter === 'all') {
+        filteredHabits = state_data.habits;
+    } else if (state_data.currentFilter === 'active') {
+        filteredHabits = state_data.habits.filter(habit => !habit.completed);
+    } else if (state_data.currentFilter === 'completed') {
+        filteredHabits = state_data.habits.filter(habit => habit.completed);
+    }
+
+    filteredHabits.forEach(habit => {
+        const li = document.createElement('li');
+        li.classList.add('habit-item');
+        if (habit.completed) li.classList.add('completed');
+
+        const spanText = document.createElement('span');
+        spanText.textContent = habit.text;
+        spanText.addEventListener('click', () => toggleHabitCompletion(habit.id));
+
+        li.appendChild(spanText);
+        state_ui.habitList.appendChild(li);
+    });
+
+    updateCompletedCount();
+}
+
+function updateCompletedCount() {
+    const completedCount = state_data.habits.filter(habit => habit.completed).length;
+    state_ui.completedCountEl.textContent = `Выполнено: ${completedCount}`;
+}
+
+function setActiveFilterButton(activeButton) {
+    [state_ui.filterAllBtn, state_ui.filterActiveBtn, state_ui.filterCompletedBtn].forEach(btn => {
+        btn.classList.remove('active-filter');
+    });
+    activeButton.classList.add('active-filter');
+}
